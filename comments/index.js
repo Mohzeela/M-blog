@@ -6,6 +6,7 @@ const { randomBytes } = require('crypto');
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 
 const comments = {};
 
