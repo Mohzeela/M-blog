@@ -16,22 +16,36 @@ app.get('/posts/:id/comments', (req, res) => {
   res.send(commentList);
 });
 
-// comment structure commentId,username, comment 
-app.post('/posts/:id/comments', (req, res) => {
+// comment structure commentId,username, comment
+app.post('/posts/:id/comments', async (req, res) => {
   const postId = req.params.id;
   const { username, comment } = req.body;
   const commentId = randomBytes(3).toString('hex');
   const load = {
     id: commentId,
     username: username,
-    comment: comment
-  }
+    comment: comment,
+  };
   const postComments = comments[postId] || [];
   postComments.push(load);
   comments[postId] = postComments;
-  res.send('Ok')
+  res.send('Ok');
+
+  await axios.post('http://localhost:4005/events', {
+    type: 'commentCreated',
+    data: {
+      id: commentId,
+      comment: comment,
+      postId: postId,
+    },
+  });
+});
+
+app.post('/events', (req, res) => {
+  console.log(`${req.body.type}:${req.body.data.id}`);
+  res.send({});
 });
 
 app.listen(4001, () => {
- console.log('server is running on port 4001')
+  console.log('server is running on port 4001');
 });
