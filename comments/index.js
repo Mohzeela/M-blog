@@ -37,6 +37,7 @@ app.post('/posts/:id/comments', async (req, res) => {
       id: commentId,
       comment: comment,
       postId: postId,
+      status: 'comment is awaiting moderation',
     },
   });
 });

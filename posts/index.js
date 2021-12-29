@@ -22,7 +22,8 @@ app.post('/posts', async (req, res) => {
   res.send(
     (posts[postId] = {
       id: postId,
-      title,
+      content: title,
+      comments: [],
     })
   );
 
