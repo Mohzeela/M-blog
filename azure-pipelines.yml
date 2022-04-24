@@ -36,3 +36,10 @@ stages:
         azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
         dockerComposeFile: '**/docker-compose.yml'
         action: 'Build services'
+    - task: DockerCompose@0
+      inputs:
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
+        azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
+        dockerComposeFile: '**/docker-compose.yml'
+        action: 'Push services'
