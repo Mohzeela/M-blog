@@ -4,6 +4,7 @@ services:
         build: 
             dockerfile: Dockerfile
             context: ./client 
+        image: client:1.0
    #        volumes:
    #     - /app/node_modules 
    #        - ./server:/app
@@ -12,12 +13,19 @@ services:
         build: 
           dockerfile: Dockerfile
           context: ./comments
+        image: comments:1.0
      #    ports: 
-          - '5000:80'
+    #     - '5000:80'
     event_bus: 
         build: 
             dockerfile: Dockerfile
             context: ./event_bus
-       #    volumes:
+        image: event_bus:1.0
+     #    volumes:
      #      - /app/node_modules 
      #      - ./client:/app
+    moderator: 
+        build: 
+            dockerfile: Dockerfile
+            context: ./moderator
+        image: moderator:1.0
