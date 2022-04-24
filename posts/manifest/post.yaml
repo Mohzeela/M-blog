@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: post-dep
+  name: post-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: post-dep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: post-dep
+    spec:
+      containers:
+      - image: mohcontreg.azurecr.io/post
+        name: post
+        resources: {}
+status: {}

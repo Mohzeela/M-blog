@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: query-dep
+  name: query-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-dep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: query-dep
+    spec:
+      containers:
+      - image: mohcontreg.azurecr.io/query
+        name: query
+        resources: {}
+status: {}
