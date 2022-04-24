@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: moderator-dep
+  name: moderator-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moderator-dep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: moderator-dep
+    spec:
+      containers:
+      - image: mohcontreg.azurecr.io/moderator
+        name: moderator
+        resources: {}
+status: {}

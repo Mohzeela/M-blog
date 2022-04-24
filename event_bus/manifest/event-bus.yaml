@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: event-bus-dep
+  name: event-bus-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-bus-dep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: event-bus-dep
+    spec:
+      containers:
+      - image: mohcontreg.azurecr.io/event-bus
+        name: event-bus
+        resources: {}
+status: {}
