@@ -43,3 +43,33 @@ stages:
         azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
         dockerComposeFile: '**/docker-compose.yml'
         action: 'Push services'
+  
+- stage: 'Deploy'
+  displayName: 'Deploy the containers'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'm-blog'
+    variables:
+    - group: Release
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: manifests
+          
+          - 
+- task: Kubernetes@1
+  inputs:
+    connectionType: 'Kubernetes Service Connection'
+    kubernetesServiceEndpoint: 'K8 environment-mohcluster-m-blog-1650876550220'
+    namespace: 'm-blog'
+    command: 'create'
+    secretType: 'generic'
+    secretName: 'secret'
+
+    
