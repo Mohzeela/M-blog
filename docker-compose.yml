@@ -4,7 +4,7 @@ services:
         build: 
             dockerfile: Dockerfile
             context: ./client 
-        image: client:1.0
+        image: client
    #        volumes:
    #     - /app/node_modules 
    #        - ./server:/app
@@ -13,14 +13,14 @@ services:
         build: 
           dockerfile: Dockerfile
           context: ./comments
-        image: comments:1.0
+        image: comments
      #    ports: 
     #     - '5000:80'
     event_bus: 
         build: 
             dockerfile: Dockerfile
             context: ./event_bus
-        image: event_bus:1.0
+        image: event_bus
      #    volumes:
      #      - /app/node_modules 
      #      - ./client:/app
@@ -28,15 +28,15 @@ services:
         build: 
             dockerfile: Dockerfile
             context: ./moderator
-        image: moderator:1.0
+        image: moderator
     post: 
         build: 
             dockerfile: Dockerfile
             context: ./posts
-        image: post:1.0
+        image: post
 
     query: 
         build: 
             dockerfile: Dockerfile
             context: ./query
-        image: query:1.0
+        image: query
