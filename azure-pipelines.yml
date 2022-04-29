@@ -85,7 +85,7 @@ stages:
                 kubernetesServiceConnection: 'mohcluster'
                 namespace: 'm-blog'
                 manifests: |
-                    $(Pipeline.Workspace)/client/manifest/clien.yml
+                    $(Pipeline.Workspace)/client/manifest/client.yml
                     $(Pipeline.Workspace)/client/manifest/client-svc.yml
                     $(Pipeline.Workspace)/comments/manifest/comments.yml
                     $(Pipeline.Workspace)/comments/manifest/comments-svc.yml
