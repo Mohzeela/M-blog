@@ -47,7 +47,7 @@ stages:
         dockerComposeFile: '**/docker-compose.yml'
         action: 'Push services'
     
-    - publish: '$(Build.SourcesDirectory)/manifests'
+    - publish: '$(Build.SourcesDirectory)/client/manifest'
       artifact: manifests
   
 - stage: 'Deploy'
