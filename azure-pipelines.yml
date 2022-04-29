@@ -11,8 +11,10 @@ resources:
 variables:
   # Container registry service connection established during pipeline creation
   dockerRegistryServiceConnection: 'fb3e1619-7bad-4b03-af46-3fa16948e2a6'
-  imageRepository: 'mohzeelamblog'
   containerRegistry: 'mohcontreg.azurecr.io'
+  commentRepository: 'comments'
+  clientRepository: 'client'
+  eventbusRepository: 'event_bus'
   dockerfilePath: '$(Build.SourcesDirectory)/client/Dockerfile'
   tag: '$(Build.BuildId)'
   imagePullSecret: 'secret'
@@ -81,7 +83,7 @@ stages:
             inputs:
                 action: deploy
                 kubernetesServiceConnection: 'Kubernetes Cluster Connection'
-                namespace: 'default'
+                namespace: 'm-blog'
                 manifests: |
                     $(Pipeline.Workspace)/client/manifest/clien.yml
                     $(Pipeline.Workspace)/client/manifest/client-svc.yml
@@ -92,8 +94,9 @@ stages:
                 imagePullSecrets: |
                     $(imagePullSecret)
                 containers: |
-                    $(RegistryName)/$(webRepository):$(tag)
-                    $(RegistryName)/$(leaderboardRepository):$(tag)
+                    $(containerRegistry)/$(commentRepository):$(tag)
+                    $(containerRegistry)/$(clientRepository):$(tag)
+                    $(containerRegistry)/$(eventbusRepository):$(tag)
 
 
     
