@@ -60,7 +60,7 @@ stages:
       vmImage: $(vmImageName)
     environment: 'm-blog'
     variables:
-    - group: Release
+    - group: mohcontreg
     strategy:
       runOnce:
         deploy:
