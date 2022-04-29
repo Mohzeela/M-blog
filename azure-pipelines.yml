@@ -74,7 +74,7 @@ stages:
             inputs:
                 action: createSecret
                 secretName: $(imagePullSecret)
-                dockerRegistryEndpoint: 'Container Registry Connection'
+                dockerRegistryEndpoint: 'mohcontreg'
                 kubernetesServiceConnection: 'mohcluster'
                 namespace: 'm-blog'
           
