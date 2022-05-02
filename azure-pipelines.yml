@@ -10,11 +10,14 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '7934c10c-1d7d-41fb-ba33-f28549b9b69f'
-  imageRepository: 'mohzeelamblog'
+  dockerRegistryServiceConnection: 'fb3e1619-7bad-4b03-af46-3fa16948e2a6'
   containerRegistry: 'mohcontreg.azurecr.io'
+  commentRepository: 'comments'
+  clientRepository: 'client'
+  eventbusRepository: 'event_bus'
   dockerfilePath: '$(Build.SourcesDirectory)/client/Dockerfile'
   tag: '$(Build.BuildId)'
+  imagePullSecret: 'secret'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
@@ -28,10 +31,72 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Azure Container Registry'
-    azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
-    azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
-    dockerComposeFile: '**/docker-compose.yml'
-    action: 'Run a Docker Compose command'
+   
+    - task: DockerCompose@0
+      inputs:
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
+        azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
+        dockerComposeFile: '**/docker-compose.yml'
+        action: 'Build services'
+    - task: DockerCompose@0
+      inputs:
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
+        azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
+        dockerComposeFile: '**/docker-compose.yml'
+        action: 'Push services'
+    
+    - publish: '$(Build.SourcesDirectory)/client/manifest'
+      artifact: manifests
+  
+- stage: 'Deploy'
+  displayName: 'Deploy the containers'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'm-blog'
+    variables:
+    - group: mohcontreg
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: manifests
+
+          
+          - task: KubernetesManifest@0
+            displayName: Create imagePullSecret
+            inputs:
+                action: createSecret
+                secretName: $(imagePullSecret)
+                dockerRegistryEndpoint: 'mohcontreg'
+                kubernetesServiceConnection: 'mohcluster'
+                namespace: 'm-blog'
+          
+          - task: KubernetesManifest@0
+            displayName: Deploy to Kubernetes cluster
+            inputs:
+                action: deploy
+                kubernetesServiceConnection: 'mohcluster'
+                namespace: 'm-blog'
+                manifests: |
+                    $(Pipeline.Workspace)/client/manifest/client.yml
+                    $(Pipeline.Workspace)/client/manifest/client-svc.yml
+                    $(Pipeline.Workspace)/comments/manifest/comments.yml
+                    $(Pipeline.Workspace)/comments/manifest/comments-svc.yml
+                    $(Pipeline.Workspace)/event_bus/manifest/event_bus.yml
+                    $(Pipeline.Workspace)/event_bus/manifest/event_bus_svc.yml
+                imagePullSecrets: |
+                    $(imagePullSecret)
+                containers: |
+                    $(containerRegistry)/$(commentRepository):$(tag)
+                    $(containerRegistry)/$(clientRepository):$(tag)
+                    $(containerRegistry)/$(eventbusRepository):$(tag)
+
+
+    
