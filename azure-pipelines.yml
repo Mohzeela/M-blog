@@ -1,5 +1,5 @@
-# Deploy to Azure Kubernetes Service
-# Build and push image to Azure Container Registry; Deploy to Azure Kubernetes Service
+# Docker
+# Build and push an image to Azure Container Registry
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
@@ -9,134 +9,94 @@ resources:
 - repo: self
 
 variables:
-
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '4e4b464b-069f-44f7-918d-7f9da079152b'
-  imageRepository: 'mohzeelamblog'
+  dockerRegistryServiceConnection: 'fb3e1619-7bad-4b03-af46-3fa16948e2a6'
   containerRegistry: 'mohcontreg.azurecr.io'
-  dockerfilePath: '**/Dockerfile'
+  commentRepository: 'comments'
+  clientRepository: 'client'
+  eventbusRepository: 'event_bus'
+  dockerfilePath: '$(Build.SourcesDirectory)/client/Dockerfile'
   tag: '$(Build.BuildId)'
-  imagePullSecret: 'mohcontregb4f4-auth'
+  imagePullSecret: 'secret'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
-  # Name of the new namespace being created to deploy the PR changes.
-  k8sNamespaceForPR: 'review-app-$(System.PullRequest.PullRequestId)'
-
 stages:
 - stage: Build
-  displayName: Build stage
+  displayName: Build and push stage
   jobs:
   - job: Build
     displayName: Build
     pool:
       vmImage: $(vmImageName)
     steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
+   
+    - task: DockerCompose@0
       inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
-
-    - upload: manifests
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
+        azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
+        dockerComposeFile: '**/docker-compose.yml'
+        action: 'Build services'
+    - task: DockerCompose@0
+      inputs:
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: 'MSDN Platforms Subscription(32eb20d3-efa4-4a51-a2ff-32721933e3dd)'
+        azureContainerRegistry: '{"loginServer":"mohcontreg.azurecr.io", "id" : "/subscriptions/32eb20d3-efa4-4a51-a2ff-32721933e3dd/resourceGroups/mohregistry/providers/Microsoft.ContainerRegistry/registries/mohcontreg"}'
+        dockerComposeFile: '**/docker-compose.yml'
+        action: 'Push services'
+    
+    - publish: '$(Build.SourcesDirectory)/client/manifest'
       artifact: manifests
-
-- stage: Deploy
-  displayName: Deploy stage
+  
+- stage: 'Deploy'
+  displayName: 'Deploy the containers'
   dependsOn: Build
-
   jobs:
   - deployment: Deploy
-    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
     displayName: Deploy
     pool:
       vmImage: $(vmImageName)
-    environment: 'MohzeelaMblog.m-blog'
+    environment: 'm-blog'
+    variables:
+    - group: mohcontreg
     strategy:
       runOnce:
         deploy:
           steps:
+          - download: current
+            artifact: manifests
+
+          
           - task: KubernetesManifest@0
             displayName: Create imagePullSecret
             inputs:
-              action: createSecret
-              secretName: $(imagePullSecret)
-              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-
+                action: createSecret
+                secretName: $(imagePullSecret)
+                dockerRegistryEndpoint: 'mohcontreg'
+                kubernetesServiceConnection: 'mohcluster'
+                namespace: 'm-blog'
+          
           - task: KubernetesManifest@0
             displayName: Deploy to Kubernetes cluster
             inputs:
-              action: deploy
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-                $(Pipeline.Workspace)/manifests/service.yml
-              imagePullSecrets: |
-                $(imagePullSecret)
-              containers: |
-                $(containerRegistry)/$(imageRepository):$(tag)
+                action: deploy
+                kubernetesServiceConnection: 'mohcluster'
+                namespace: 'm-blog'
+                manifests: |
+                    $(Pipeline.Workspace)/client/manifest/client.yml
+                    $(Pipeline.Workspace)/client/manifest/client-svc.yml
+                    $(Pipeline.Workspace)/comments/manifest/comments.yml
+                    $(Pipeline.Workspace)/comments/manifest/comments-svc.yml
+                    $(Pipeline.Workspace)/event_bus/manifest/event_bus.yml
+                    $(Pipeline.Workspace)/event_bus/manifest/event_bus_svc.yml
+                imagePullSecrets: |
+                    $(imagePullSecret)
+                containers: |
+                    $(containerRegistry)/$(commentRepository):$(tag)
+                    $(containerRegistry)/$(clientRepository):$(tag)
+                    $(containerRegistry)/$(eventbusRepository):$(tag)
 
-  - deployment: DeployPullRequest
-    displayName: Deploy Pull request
-    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
-    pool:
-      vmImage: $(vmImageName)
 
-    environment: 'MohzeelaMblog.$(k8sNamespaceForPR)'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - reviewApp: m-blog
-
-          - task: Kubernetes@1
-            displayName: 'Create a new namespace for the pull request'
-            inputs:
-              command: apply
-              useConfigurationFile: true
-              inline: '{ "kind": "Namespace", "apiVersion": "v1", "metadata": { "name": "$(k8sNamespaceForPR)" }}'
-
-          - task: KubernetesManifest@0
-            displayName: Create imagePullSecret
-            inputs:
-              action: createSecret
-              secretName: $(imagePullSecret)
-              namespace: $(k8sNamespaceForPR)
-              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-
-          - task: KubernetesManifest@0
-            displayName: Deploy to the new namespace in the Kubernetes cluster
-            inputs:
-              action: deploy
-              namespace: $(k8sNamespaceForPR)
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-                $(Pipeline.Workspace)/manifests/service.yml
-              imagePullSecrets: |
-                $(imagePullSecret)
-              containers: |
-                $(containerRegistry)/$(imageRepository):$(tag)
-
-          - task: Kubernetes@1
-            name: get
-            displayName: 'Get services in the new namespace'
-            continueOnError: true
-            inputs:
-              command: get
-              namespace: $(k8sNamespaceForPR)
-              arguments: svc
-              outputFormat: jsonpath='http://{.items[0].status.loadBalancer.ingress[0].ip}:{.items[0].spec.ports[0].port}'
-
-          # Getting the IP of the deployed service and writing it to a variable for posing comment
-          - script: |
-              url="$(get.KubectlOutput)"
-              message="Your review app has been deployed"
-              if [ ! -z "$url" -a "$url" != "http://:" ]
-              then
-                message="${message} and is available at $url.<br><br>[Learn More](https://aka.ms/testwithreviewapps) about how to test and provide feedback for the app."
-              fi
-              echo "##vso[task.setvariable variable=GITHUB_COMMENT]$message"
+    
