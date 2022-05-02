@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: mohzeelamblog 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mohzeelamblog
+  template:
+    metadata:
+      labels:
+        app: mohzeelamblog 
+    spec:
+      containers:
+        - name: mohzeelamblog 
+          image: mohcontreg.azurecr.io/mohzeelamblog
+          ports:
+          - containerPort: 80
